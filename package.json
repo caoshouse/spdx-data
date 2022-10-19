@@ -1,0 +1,18 @@
+{
+  "name": "spdx-data",
+  "version": "1.0.12",
+  "description": "SPDX Licenses",
+  "main": "index.js",
+  "scripts": {
+    "update": "node -e \"require('./index.js').update()\" && tsc && npm publish --access public"
+  },
+  "keywords": [
+    "SPDX",
+    "LICENSES"
+  ],
+  "author": "caoshouse",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.11.2"
+  }
+}
