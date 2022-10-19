@@ -12,17 +12,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.update = exports.getVersion = exports.getReleaseDate = exports.getDeprecatedLicenses = exports.getFreeLicenses = exports.getApprovedLicenses = exports.getLicenses = exports.getAllIds = void 0;
+exports.update = exports.getByExpression = exports.getVersion = exports.getReleaseDate = exports.getDeprecatedLicenses = exports.getFreeLicenses = exports.getApprovedLicenses = exports.getLicenses = exports.getIDs = void 0;
 const DATASRCURL = 'https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json';
 const http_promise_1 = __importDefault(require("./http-promise"));
 const promises_1 = require("fs/promises");
 const data_json_1 = __importDefault(require("./data.json"));
 const fs_1 = require("fs");
 let data = data_json_1.default;
-function getAllIds() {
+function getIDs() {
     return data.licenses.map(item => item.licenseId);
 }
-exports.getAllIds = getAllIds;
+exports.getIDs = getIDs;
 function getLicenses() {
     return data.licenses;
 }
@@ -47,15 +47,28 @@ function getVersion() {
     return data.licenseListVersion;
 }
 exports.getVersion = getVersion;
+function getByExpression(expr) {
+    const parts = expr.split(/OR|\+|AND/g).map(x => { return x.trim(); });
+    return getLicenses().filter(item => {
+        for (var part of parts) {
+            if (item.licenseId.indexOf(part) === 0) {
+                return true;
+            }
+        }
+        return false;
+    });
+}
+exports.getByExpression = getByExpression;
 function update() {
     return __awaiter(this, void 0, void 0, function* () {
+        console.log('Downloading SPDX data... ');
         const origReleaseDate = getReleaseDate();
         const resp = yield (0, http_promise_1.default)(DATASRCURL);
-        console.log(resp.body);
         yield (0, promises_1.writeFile)('./data.json', resp.body);
         data = JSON.parse(resp.body);
         const newReleaseDate = getReleaseDate();
         if (!origReleaseDate || (origReleaseDate !== newReleaseDate)) {
+            console.log('SPDX version has changed: ' + newReleaseDate);
             const pkgJson = (0, fs_1.readFileSync)('./package.json').toString(), pkg = JSON.parse(pkgJson), ver = pkg.version.split('.').map((x, index) => {
                 return (2 === index) ? '' + (parseInt(x) + 1) : x;
             }).join('.');
@@ -63,6 +76,11 @@ function update() {
             yield (0, promises_1.writeFile)('./package.json', JSON.stringify(pkg, null, 2));
             console.log('Package version updated. New version is ' + ver);
         }
+        else {
+            console.log('SPDX version already updated: ' + getVersion());
+        }
+        console.log('SPDX Version:' + getVersion());
+        console.log('SPDX Release Date:' + getReleaseDate());
         return data;
     });
 }

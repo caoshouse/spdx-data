@@ -1,10 +1,10 @@
 {
   "name": "spdx-data",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "SPDX Licenses",
   "main": "index.js",
   "scripts": {
-    "update": "node -e \"require('./index.js').update()\" && tsc && npm publish --access public"
+    "spdx:update": "node -e \"require('./index.js').update()\" && tsc"
   },
   "keywords": [
     "SPDX",

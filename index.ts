@@ -6,9 +6,27 @@ import { writeFile } from 'fs/promises'
 import localData from './data.json'
 import { readFileSync } from 'fs'
 
-let data = localData
+let data: Data = localData
 
-export function getAllIds() {
+type URL = string
+interface License {
+    "reference": URL,
+    "isDeprecatedLicenseId"?: boolean,
+    "detailsUrl": URL,
+    "referenceNumber": number,
+    "name": string,
+    "licenseId": string,
+    "seeAlso"?: URL[],
+    "isOsiApproved"?: boolean,
+    "isFsfLibre"?: boolean
+}
+interface Data {
+    licenses: License[],
+    licenseListVersion: string,
+    releaseDate: string
+}
+
+export function getIDs() {
     return data.licenses.map(item => item.licenseId)
 }
 
@@ -36,15 +54,28 @@ export function getVersion() {
     return data.licenseListVersion
 }
 
+export function getByExpression(expr: string): License[] {
+    const parts = expr.split(/OR|\+|AND/g).map(x => { return x.trim() })
+    return getLicenses().filter(item => {
+        for (var part of parts) {
+            if (item.licenseId.indexOf(part) === 0) {
+                return true
+            }
+        }
+        return false
+    })
+}
+
 
 export async function update(): Promise<typeof data> {
+    console.log('Downloading SPDX data... ')
     const origReleaseDate = getReleaseDate()
     const resp = await req(DATASRCURL)
-    console.log(resp.body)
     await writeFile('./data.json', resp.body)
     data = JSON.parse(resp.body)
     const newReleaseDate = getReleaseDate()
     if (!origReleaseDate || (origReleaseDate !== newReleaseDate)) {
+        console.log('SPDX version has changed: ' + newReleaseDate)
         const
             pkgJson = readFileSync('./package.json').toString(),
             pkg = JSON.parse(pkgJson),
@@ -54,6 +85,12 @@ export async function update(): Promise<typeof data> {
         pkg.version = ver
         await writeFile('./package.json', JSON.stringify(pkg, null, 2))
         console.log('Package version updated. New version is ' + ver)
+    } else {
+        console.log('SPDX version already updated: ' + getVersion())
     }
+    console.log('SPDX Version:' + getVersion())
+    console.log('SPDX Release Date:' + getReleaseDate())
     return data
 }
+
+
